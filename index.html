@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magnetic Adventure</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden; background: #111;
+      font-family: 'Segoe UI', sans-serif; color: white;
+    }
+    #overlay {
+      position: fixed; top:0; left:0;
+      width:100%; height:100%;
+      background:#111; display:flex;
+      flex-direction:column; justify-content:center;
+      align-items:center; z-index:9999; text-align:center;
+    }
+    /* Judul dengan efek shimmer */
+    #overlay h1 {
+      font-size:2rem; margin-bottom:15px;
+      background: linear-gradient(90deg,#00d4ff,#007bff,#00d4ff);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 3s linear infinite, fadeSlide 1s forwards;
+      opacity:0;
+    }
+    @keyframes shimmer {
+      to { background-position: -200% center; }
+    }
+
+    /* Paragraf typing effect */
+    #overlay p {
+      font-size:1.2rem; margin-bottom:25px;
+      white-space: nowrap;
+      border-right: 2px solid #00d4ff;
+      width: 0;
+      overflow: hidden;
+      opacity:1;
+      animation: typing 3s steps(40, end) forwards 0.5s,
+                 blink 0.75s step-end infinite;
+    }
+    @keyframes typing {
+      from { width: 0; }
+      to   { width: 100%; }
+    }
+    @keyframes blink {
+      from, to { border-color: transparent; }
+      50% { border-color: #00d4ff; }
+    }
+
+    #mulaiBtn {
+      font-size:1.6rem; padding:15px 40px;
+      border:none; border-radius:50px;
+      background:linear-gradient(135deg,#007bff,#00d4ff);
+      color:white; cursor:pointer; opacity:0;
+      transform:translateY(20px);
+      animation: fadeSlide 1s forwards 3.5s, pulse 2s infinite 4s;
+      transition:transform 0.25s, box-shadow 0.25s;
+    }
+    #mulaiBtn:hover { transform:scale(1.07); box-shadow:0 0 20px rgba(0,212,255,0.7); }
+    #mulaiBtn:active { transform:scale(0.92); box-shadow:0 0 10px rgba(0,123,255,0.9); }
+
+    #content { width:100%; height:100%; display:none; position:relative; }
+    iframe { width:100%; height:100%; border:none; }
+    #fullscreenBtn {
+      position:absolute; top:15px; right:15px;
+      width:45px; height:45px; border:none;
+      border-radius:50%; background:rgba(0,0,0,0.5);
+      color:white; font-size:1.3rem; cursor:pointer;
+      display:none; z-index:10000; opacity:0;
+      transition:opacity 0.3s, background 0.3s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    #fullscreenBtn:hover { background:rgba(0,0,0,0.8); }
+
+    @keyframes fadeSlide {
+      from {opacity:0; transform:translateY(20px);}
+      to   {opacity:1; transform:translateY(0);}
+    }
+    @keyframes pulse {
+      0%{transform:scale(1);} 50%{transform:scale(1.05);} 100%{transform:scale(1);}
+    }
+  </style>
+</head>
+<body>
+  <!-- Musik intro -->
+  <audio id="bgMusic" preload="auto" loop muted>
+    <source src="intro-musik/opening.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Overlay -->
+  <div id="overlay">
+    <h1>Let's Start an Adventure in the World of Magnets</h1>
+    <p>Klik untuk memulai dan mode layar penuh.</p>
+    <button id="mulaiBtn">Mulai</button>
+  </div>
+
+  <!-- Konten utama -->
+  <div id="content">
+    <button id="fullscreenBtn">⛶</button>
+    <iframe src="story.html"></iframe>
+  </div>
+
+  <script>
+    const overlay = document.getElementById("overlay");
+    const content = document.getElementById("content");
+    const mulaiBtn = document.getElementById("mulaiBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const bgMusic = document.getElementById("bgMusic");
+    let hideTimeout;
+
+    // Fullscreen
+    function openFullscreen() {
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+      else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
+      else if (document.documentElement.msRequestFullscreen) document.documentElement.msRequestFullscreen();
+    }
+    function exitFullscreen() {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    }
+
+    function showButton() {
+      fullscreenBtn.style.display = "flex";
+      fullscreenBtn.style.opacity = "1";
+      clearTimeout(hideTimeout);
+      hideTimeout = setTimeout(() => {
+        fullscreenBtn.style.opacity = "0";
+        setTimeout(() => {
+          if (fullscreenBtn.style.opacity === "0") fullscreenBtn.style.display = "none";
+        }, 300);
+      }, 3000);
+    }
+
+    function fadeInMusic(audio, duration = 2000) {
+      audio.volume = 0;
+      audio.muted = false;
+      audio.play().catch(err => console.log("Autoplay dicegah:", err));
+      let step = 0.05;
+      let interval = duration / (1 / step);
+      let fade = setInterval(() => {
+        if (audio.volume < 1) audio.volume = Math.min(1, audio.volume + step);
+        else clearInterval(fade);
+      }, interval);
+    }
+    function fadeOutMusic(audio, duration = 2000) {
+      let step = 0.05;
+      let interval = duration / (1 / step);
+      let fade = setInterval(() => {
+        if (audio.volume > 0) audio.volume = Math.max(0, audio.volume - step);
+        else { audio.pause(); clearInterval(fade); }
+      }, interval);
+    }
+
+    function startIntroMusicOnce() {
+      fadeInMusic(bgMusic, 3000);
+      document.removeEventListener("click", startIntroMusicOnce);
+      document.removeEventListener("touchstart", startIntroMusicOnce);
+    }
+    window.addEventListener("load", () => {
+      document.addEventListener("click", startIntroMusicOnce);
+      document.addEventListener("touchstart", startIntroMusicOnce);
+    });
+
+    mulaiBtn.addEventListener("click", () => {
+  openFullscreen();
+  overlay.style.display = "none";
+  content.style.display = "block";
+  showButton();
+  fadeOutMusic(bgMusic, 3000);
+
+  // >>> mainkan musik latar di story.html
+  const iframe = document.querySelector("iframe");
+  iframe.addEventListener("load", () => {
+    try {
+      const bgSong = iframe.contentWindow.document.getElementById("bgSong");
+      if (bgSong) bgSong.play().catch(err => console.log("Autoplay dicegah:", err));
+    } catch (e) {
+      console.log("Tidak bisa akses iframe:", e);
+    }
+  });
+});
+
+    fullscreenBtn.addEventListener("click", () => {
+      if (!document.fullscreenElement) openFullscreen(); else exitFullscreen();
+    });
+    document.addEventListener("fullscreenchange", () => {
+      fullscreenBtn.textContent = document.fullscreenElement ? "✖" : "⛶";
+      showButton();
+    });
+    document.addEventListener("mousemove", showButton);
+    document.addEventListener("touchstart", showButton);
+  </script>
+</body>
+</html>
